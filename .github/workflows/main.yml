@@ -108,7 +108,6 @@ jobs:
                 mkdir -p ~/.ssh
                 echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
                 chmod 600 ~/.ssh/id_rsa
-                ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
         # Крок 5: Отримуємо публічний IP EC2 (якщо використовуємо instance ID)
         - name: Get EC2 public IP
