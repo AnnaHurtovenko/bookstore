@@ -2,8 +2,7 @@ version: '3.8'
 
 services:
   frontend:
-    build:
-      context: ./frontend
+    image: ${{ vars.ECR_REGISTRY }}/frontend:${{ github.sha }}
     container_name: frontend
     environment:
       - BACKEND_RDS_URL=http://backend-rds:8000/test_connection/
@@ -18,8 +17,7 @@ services:
 
 
   backend-rds:
-    build:
-      context: ./backend_rds
+    image: ${{ vars.ECR_REGISTRY }}/backend-rds:${{ github.sha }}
     container_name: backend-rds
     environment:
       - DB_NAME=database-game
@@ -37,8 +35,7 @@ services:
 
 
   backend-redis:
-    build:
-      context: ./backend_redis 
+    image: ${{ vars.ECR_REGISTRY }}/backend-redis:${{ github.sha }}
     container_name: backend-redis 
     environment:
       - REDIS_HOST=clustercfg.redis.kxloed.eun1.cache.amazonaws.com:6379
