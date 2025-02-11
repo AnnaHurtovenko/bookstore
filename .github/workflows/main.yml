@@ -122,9 +122,8 @@ jobs:
       
           echo "Testing SSH connection to EC2..."
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ env.EC2_PUBLIC_IP }} \
-            ECR_REGISTRY=${{ secrets.ECR_REGISTRY }} \
-            GIT_SHA=${{ github.sha }} << 'EOF'
-          
+          "ECR_REGISTRY=${{ secrets.ECR_REGISTRY }} GIT_SHA=${{ github.sha }} BACKEND_RDS_CHANGED=${{ env.BACKEND_RDS_CHANGED }} BACKEND_REDIS_CHANGED=${{ env.BACKEND_REDIS_CHANGED }} FRONTEND_CHANGED=${{ env.FRONTEND_CHANGED }} bash -s" << 'EOF'
+      
           set -a
           export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
           export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -145,7 +144,8 @@ jobs:
           echo "GIT_SHA=${GIT_SHA}"
       
           if [[ -z "$ECR_REGISTRY" || -z "$GIT_SHA" ]]; then
-            echo "Помилка: ECR_REGISTRY або GIT_SHA не визначено!"
+            echo "Помилка: ECR_REGISTRY або GIT_SHA не визначено!" >&2
+            exit 1
           fi
       
           if [[ "${BACKEND_RDS_CHANGED}" == "true" ]]; then
@@ -164,9 +164,23 @@ jobs:
           echo "Current running container images before restart:"
           docker ps --format "table {{.Names}}\t{{.Image}}"
       
-          docker-compose down
-          docker-compose up -d
+          if [[ "${BACKEND_RDS_CHANGED}" == "true" ]]; then
+            docker-compose pull backend_rds
+            docker-compose down
+            docker-compose up -d 
+          fi
+          if [[ "${BACKEND_REDIS_CHANGED}" == "true" ]]; then
+            docker-compose pull backend_redis
+            docker-compose down
+            docker-compose up -d 
+          fi
+          if [[ "${FRONTEND_CHANGED}" == "true" ]]; then
+            docker-compose pull frontend
+            docker-compose down
+            docker-compose up -d 
+          fi
       
           echo "Current running container images after restart:"
           docker ps --format "table {{.Names}}\t{{.Image}}"
           EOF
+      
