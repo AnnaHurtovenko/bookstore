@@ -52,7 +52,7 @@ jobs:
         - name: Login to Amazon ECR
           uses: aws-actions/amazon-ecr-login@v1       
 
-        - name: Save GIT SHA
+        - name: Save GIT SHA 
           run: echo "GIT_SHA=${{ github.sha }}" >> $GITHUB_ENV
         
         - name: Build and push ${{ matrix.service }} image if changed
@@ -60,18 +60,22 @@ jobs:
               ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}             
           run: |
             BEFORE_COMMIT=${{ github.event.before }}
+            CURRENT_COMMIT=${{ github.sha }}  # Поточний коміт
             echo "BEFORE_COMMIT: $BEFORE_COMMIT"
             echo "CURRENT_COMMIT: $CURRENT_COMMIT"
+        
+            # Якщо немає початкового коміту, встановлюємо його на перший коміт
             if [ -z "$BEFORE_COMMIT" ] || [ "$BEFORE_COMMIT" = "0000000000000000000000000000000000000000" ]; then
                 BEFORE_COMMIT=$(git rev-list --max-parents=0 HEAD)
             fi
-
-            if git diff --name-only $BEFORE_COMMIT $GIT_SHA | grep -q "^${{ matrix.context }}/"; then
+        
+            # Перевірка змін між комітами
+            if git diff --name-only $BEFORE_COMMIT $CURRENT_COMMIT | grep -q "^${{ matrix.context }}/"; then
                 echo "Changes detected in ${{ matrix.service }}. Building and pushing image..."
                 cd ${{ matrix.context }}
-                docker build -t $ECR_REGISTRY/${{ matrix.service }}:$GIT_SHA .
-                docker push $ECR_REGISTRY/${{ matrix.service }}:$GIT_SHA
-            elif git diff --name-only $BEFORE_COMMIT $GIT_SHA | grep -q "docker-compose.yml"; then
+                docker build -t $ECR_REGISTRY/${{ matrix.service }}:$CURRENT_COMMIT .
+                docker push $ECR_REGISTRY/${{ matrix.service }}:$CURRENT_COMMIT
+            elif git diff --name-only $BEFORE_COMMIT $CURRENT_COMMIT | grep -q "docker-compose.yml"; then
                 echo "Changes detected in Docker Compose. Rebuilding all services..."
                 docker-compose build
                 docker-compose push
@@ -139,23 +143,25 @@ jobs:
             ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ env.EC2_PUBLIC_IP }} << 'EOF'
             set -e
             
+            cd /home/ubuntu/bookstore
+
             export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
             export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
             export AWS_REGION=${{ secrets.AWS_REGION }}
             export ECR_REGISTRY=${{ vars.ECR_REGISTRY }}
             export GIT_SHA=${{ github.sha }}
 
-            cd /home/ubuntu/bookstore
-            
-            BEFORE_COMMIT=${{ github.event.before }}
-            if [ -z "$BEFORE_COMMIT" ] || [ "$BEFORE_COMMIT" = "0000000000000000000000000000000000000000" ]; then
-                BEFORE_COMMIT=$(git rev-list --max-parents=0 HEAD)
-            fi
-            
             echo "Fetching latest code..."
             git fetch origin main
             git reset --hard origin/main
+
+            echo "Logging into AWS ECR..."
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ vars.ECR_REGISTRY }}
+
+            BEFORE_COMMIT=${{ github.event.before }}
+            CURRENT_COMMIT=${{ github.sha }}
             
+            # Перевірка змін між комітами
             echo "Checking for changes in ${{ matrix.service }}..."
             if ! git rev-parse HEAD~1 >/dev/null 2>&1; then
                 echo "No previous commit found, running full deployment."
@@ -164,17 +170,19 @@ jobs:
                     echo "No changes in ${{ matrix.service }}. Skipping deploy."
                 else
                     echo "Changes detected in ${{ matrix.service }}. Deploying..."
-                    docker pull $ECR_REGISTRY/${{ matrix.service }}:$GIT_SHA
+                    docker pull $ECR_REGISTRY/${{ matrix.service }}:$CURRENT_COMMIT
                     docker-compose down ${{ matrix.service }} || true
                     docker-compose up -d ${{ matrix.service }}
                 fi
             fi
-
+            
+            # Перевірка змін у Docker Compose
             if git diff --name-only $BEFORE_COMMIT HEAD | grep -q "docker-compose.yml"; then
                 echo "docker-compose.yml has changed. Restarting all services..."
                 docker-compose down
                 docker-compose up -d --build
             fi
+    
 
             echo "Removing old Docker images..."
             docker image prune -f

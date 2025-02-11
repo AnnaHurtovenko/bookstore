@@ -21,3 +21,4 @@ EXPOSE 8001
 # Start the server via Gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:8001", "backend_rds.wsgi:application"]
 
+
