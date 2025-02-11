@@ -54,6 +54,8 @@ jobs:
         run: echo "GIT_SHA=${{ github.sha }}" >> $GITHUB_ENV
 
       - name: Build and push ${{ matrix.service }} image if changed
+        env:
+          ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
         run: |
           BEFORE_COMMIT=${{ github.event.before }}
           CURRENT_COMMIT=${{ github.sha }}  # Поточний коміт
@@ -68,7 +70,6 @@ jobs:
           # Перевірка змін для кожного сервісу
           SERVICE=${{ matrix.service }}
           CONTEXT=${{ matrix.context }}
-          ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
           DOCKERFILE=$CONTEXT/Dockerfile
           IMAGE_NAME=$ECR_REGISTRY/$SERVICE:$CURRENT_COMMIT
 
