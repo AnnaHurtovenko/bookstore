@@ -146,7 +146,6 @@ jobs:
       
           if [[ -z "$ECR_REGISTRY" || -z "$GIT_SHA" ]]; then
             echo "Помилка: ECR_REGISTRY або GIT_SHA не визначено!"
-            exit 1
           fi
       
           if [[ "${BACKEND_RDS_CHANGED}" == "true" ]]; then
