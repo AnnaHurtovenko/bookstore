@@ -76,16 +76,18 @@ jobs:
               DOCKERFILE=$3
               IMAGE_NAME=$ECR_REGISTRY/$SERVICE:$CURRENT_COMMIT
               # Перевірка на зміни в усіх файлах в контексті сервісу
-              if git diff --name-only $BEFORE_COMMIT $CURRENT_COMMIT | grep -q "^$CONTEXT/"; then
+              # Перевірка на зміни в усіх файлах в контексті сервісу
+              if git diff --name-only $BEFORE_COMMIT $CURRENT_COMMIT | grep -q "^bookstore/$CONTEXT/"; then
                 echo "Changes detected in $SERVICE. Building and pushing image..."
                 
-                # Збірка і пуш Docker-образу
-                docker build -f $DOCKERFILE -t $IMAGE_NAME $CONTEXT
+                # Збірка і пуш Docker-образу з правильним контекстом
+                docker build -f bookstore/$CONTEXT/$DOCKERFILE -t $IMAGE_NAME bookstore/$CONTEXT
                 docker push $IMAGE_NAME
               else
                 echo "No changes in $SERVICE. Skipping build and push."
               fi
             }
+          
           
             # Перевірка змін і побудова для кожного сервісу
             build_and_push "frontend" "frontend" "Dockerfile"
