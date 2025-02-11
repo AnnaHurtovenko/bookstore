@@ -136,7 +136,10 @@ jobs:
 
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
-          docker network ls | grep "bookstore_app_network" && docker network rm bookstore_app_network || true
+          docker network ls | grep bookstore_app_network || docker network create bookstore_app_network
+
+          echo "docker-compose.yml before update:"
+          cat docker-compose.yml
 
           if [[ "${BACKEND_RDS_CHANGED}" == "true" ]]; then
             yq e '.services.backend_rds.image = strenv(ECR_REGISTRY)+"/backend-rds:"+strenv(GIT_SHA)' -i docker-compose.yml
@@ -148,6 +151,15 @@ jobs:
             yq e '.services.frontend.image = strenv(ECR_REGISTRY)+"/frontend:"+strenv(GIT_SHA)' -i docker-compose.yml
           fi
 
+          echo "docker-compose.yml after update:"
+          cat docker-compose.yml
+
+          echo "Current running container images before restart:"
+          docker ps --format "table {{.Names}}\t{{.Image}}"
+
           docker-compose down
           docker-compose up -d
+
+          echo "Current running container images after restart:"
+          docker ps --format "table {{.Names}}\t{{.Image}}"
           EOF
