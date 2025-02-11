@@ -52,22 +52,30 @@ jobs:
         - name: Login to Amazon ECR
           uses: aws-actions/amazon-ecr-login@v1       
 
-        - name: Save GIT SHA 
+        - name: Save GIT SHA
           run: echo "GIT_SHA=${{ github.sha }}" >> $GITHUB_ENV
         
         - name: Build and push ${{ matrix.service }} image if changed
           env:
-              ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}             
+            ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
           run: |
             BEFORE_COMMIT=${{ github.event.before }}
             CURRENT_COMMIT=${{ github.sha }}  # Поточний коміт
             echo "BEFORE_COMMIT: $BEFORE_COMMIT"
             echo "CURRENT_COMMIT: $CURRENT_COMMIT"
-        
+            
             # Якщо немає початкового коміту, встановлюємо його на перший коміт
             if [ -z "$BEFORE_COMMIT" ] || [ "$BEFORE_COMMIT" = "0000000000000000000000000000000000000000" ]; then
                 BEFORE_COMMIT=$(git rev-list --max-parents=0 HEAD)
             fi
+        
+            # Вивести зміни між комітами для діагностики
+            echo "Checking for changes between commits $BEFORE_COMMIT and $CURRENT_COMMIT..."
+            git diff --name-status $BEFORE_COMMIT $CURRENT_COMMIT
+        
+            # Вивести журнал комітів для додаткової перевірки
+            echo "Git log for the range:"
+            git log --oneline $BEFORE_COMMIT..$CURRENT_COMMIT
         
             # Перевірка змін між комітами
             if git diff --name-only $BEFORE_COMMIT $CURRENT_COMMIT | grep -q "^${{ matrix.context }}/"; then
