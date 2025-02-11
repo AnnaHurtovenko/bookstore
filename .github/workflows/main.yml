@@ -141,6 +141,14 @@ jobs:
           echo "docker-compose.yml before update:"
           cat docker-compose.yml
 
+          echo "ECR_REGISTRY=${ECR_REGISTRY}"
+          echo "GIT_SHA=${GIT_SHA}"
+
+          if [[ -z "$ECR_REGISTRY" || -z "$GIT_SHA" ]]; then
+            echo "Помилка: ECR_REGISTRY або GIT_SHA не визначено!"
+            exit 1
+          fi
+
           if [[ "${BACKEND_RDS_CHANGED}" == "true" ]]; then
             yq e '.services.backend_rds.image = strenv(ECR_REGISTRY)+"/backend-rds:"+strenv(GIT_SHA)' -i docker-compose.yml
           fi
