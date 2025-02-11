@@ -33,11 +33,11 @@ jobs:
         run: |
           echo "Checking for changed files..."
           BEFORE_COMMIT=${{ github.event.before }}
-          CURRENT_COMMIT=${{ github.sha }}  # Поточний коміт
+          GIT_SHA=${{ github.sha }}  # Поточний коміт
           echo "BEFORE_COMMIT: $BEFORE_COMMIT"
-          echo "CURRENT_COMMIT: $CURRENT_COMMIT"
+          echo "GIT_SHA: $GIT_SHA"
       
-          CHANGED_FILES=$(git diff --name-only $BEFORE_COMMIT $CURRENT_COMMIT)
+          CHANGED_FILES=$(git diff --name-only $BEFORE_COMMIT $GIT_SHA)
           echo "Changed files: $CHANGED_FILES"
 
           if echo "$CHANGED_FILES" | grep -q "backend_rds/"; then
@@ -60,7 +60,7 @@ jobs:
         if: env.BACKEND_RDS_CHANGED == 'true'
         env:
           GIT_SHA: ${{ github.sha }}
-          ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |
           cd backend_rds
           docker build -t backend-rds .
@@ -72,7 +72,7 @@ jobs:
         if: env.BACKEND_REDIS_CHANGED == 'true'
         env:
           GIT_SHA: ${{ github.sha }}
-          ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |
           cd backend_redis
           docker build -t backend-redis .
@@ -84,7 +84,7 @@ jobs:
         if: env.FRONTEND_CHANGED == 'true'
         env:
           GIT_SHA: ${{ github.sha }}
-          ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
         run: |
           cd frontend
           docker build -t frontend .
@@ -111,7 +111,7 @@ jobs:
         env:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
           GIT_SHA: ${{ github.sha }}
-          ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -123,6 +123,9 @@ jobs:
           echo "Testing SSH connection to EC2..."
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ env.EC2_PUBLIC_IP }} << 'EOF'
           set -a
+          echo "GIT_SHA=${GIT_SHA}" >> ~/.bashrc
+          source ~/.bashrc
+
           export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
           export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
           export AWS_REGION=${AWS_REGION}
@@ -132,6 +135,8 @@ jobs:
           cd /home/ubuntu/bookstore 
 
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+          docker network ls | grep "bookstore_app_network" && docker network rm bookstore_app_network || true
 
           if [[ "${BACKEND_RDS_CHANGED}" == "true" ]]; then
             yq e '.services.backend_rds.image = strenv(ECR_REGISTRY)+"/backend-rds:"+strenv(GIT_SHA)' -i docker-compose.yml
@@ -143,6 +148,6 @@ jobs:
             yq e '.services.frontend.image = strenv(ECR_REGISTRY)+"/frontend:"+strenv(GIT_SHA)' -i docker-compose.yml
           fi
 
-          sudo docker-compose down
-          sudo docker-compose up -d
+          docker-compose down
+          docker-compose up -d
           EOF
