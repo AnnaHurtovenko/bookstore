@@ -16,6 +16,8 @@ jobs:
       # Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # Configure AWS Credentials
       - name: Configure AWS credentials
@@ -30,7 +32,12 @@ jobs:
         id: changes
         run: |
           echo "Checking for changed files..."
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          BEFORE_COMMIT=${{ github.event.before }}
+          CURRENT_COMMIT=${{ github.sha }}  # Поточний коміт
+          echo "BEFORE_COMMIT: $BEFORE_COMMIT"
+          echo "CURRENT_COMMIT: $CURRENT_COMMIT"
+      
+          CHANGED_FILES=$(git diff --name-only $BEFORE_COMMIT $CURRENT_COMMIT)
           echo "Changed files: $CHANGED_FILES"
 
           if echo "$CHANGED_FILES" | grep -q "backend_rds/"; then
