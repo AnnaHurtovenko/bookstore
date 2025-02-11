@@ -60,6 +60,8 @@ jobs:
               ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}             
           run: |
             BEFORE_COMMIT=${{ github.event.before }}
+            echo "BEFORE_COMMIT: $BEFORE_COMMIT"
+            echo "CURRENT_COMMIT: $CURRENT_COMMIT"
             if [ -z "$BEFORE_COMMIT" ] || [ "$BEFORE_COMMIT" = "0000000000000000000000000000000000000000" ]; then
                 BEFORE_COMMIT=$(git rev-list --max-parents=0 HEAD)
             fi
@@ -133,7 +135,8 @@ jobs:
         # Крок 6: Деплой в EC2 через SSH
         - name: Deploy to EC2
           run: |
-            ssh -i ~/.ssh/id_rsa ubuntu@${{ env.EC2_PUBLIC_IP }} << EOF
+            echo "Testing SSH connection to EC2..."
+            ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ env.EC2_PUBLIC_IP }} << 'EOF'
             set -e
             
             export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
