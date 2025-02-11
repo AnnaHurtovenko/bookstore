@@ -117,38 +117,38 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           mkdir -p ~/.ssh
-                echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-                chmod 600 ~/.ssh/id_rsa
-
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+      
           echo "Testing SSH connection to EC2..."
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ env.EC2_PUBLIC_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ env.EC2_PUBLIC_IP }} \
+            ECR_REGISTRY=${{ secrets.ECR_REGISTRY }} \
+            GIT_SHA=${{ github.sha }} << 'EOF'
+          
           set -a
-          echo "GIT_SHA=${GIT_SHA}" >> ~/.bashrc
-          source ~/.bashrc
-
-          export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-          export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-          export AWS_REGION=${AWS_REGION}
+          export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          export AWS_REGION=${{ secrets.AWS_REGION }}
           export ECR_REGISTRY=${ECR_REGISTRY}
           export GIT_SHA=${GIT_SHA}
-
+      
           cd /home/ubuntu/bookstore 
-
+      
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-
+      
           docker network ls | grep bookstore_app_network || docker network create bookstore_app_network
-
+      
           echo "docker-compose.yml before update:"
           cat docker-compose.yml
-
+      
           echo "ECR_REGISTRY=${ECR_REGISTRY}"
           echo "GIT_SHA=${GIT_SHA}"
-
+      
           if [[ -z "$ECR_REGISTRY" || -z "$GIT_SHA" ]]; then
             echo "Помилка: ECR_REGISTRY або GIT_SHA не визначено!"
             exit 1
           fi
-
+      
           if [[ "${BACKEND_RDS_CHANGED}" == "true" ]]; then
             yq e '.services.backend_rds.image = strenv(ECR_REGISTRY)+"/backend-rds:"+strenv(GIT_SHA)' -i docker-compose.yml
           fi
@@ -158,16 +158,16 @@ jobs:
           if [[ "${FRONTEND_CHANGED}" == "true" ]]; then
             yq e '.services.frontend.image = strenv(ECR_REGISTRY)+"/frontend:"+strenv(GIT_SHA)' -i docker-compose.yml
           fi
-
+      
           echo "docker-compose.yml after update:"
           cat docker-compose.yml
-
+      
           echo "Current running container images before restart:"
           docker ps --format "table {{.Names}}\t{{.Image}}"
-
+      
           docker-compose down
           docker-compose up -d
-
+      
           echo "Current running container images after restart:"
           docker ps --format "table {{.Names}}\t{{.Image}}"
           EOF
