@@ -57,21 +57,25 @@ jobs:
           env:
               ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}             
           run: |
-            # Check for changes in the relevant service
-            if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^${{ matrix.context }}/"; then
-                echo "Changes detected in ${{ matrix.service }}. Building and pushing image..."
-                
-                cd ${{ matrix.context }}
-                docker build -t $ECR_REGISTRY/${{ matrix.service }}:$GIT_SHA .
-                docker push $ECR_REGISTRY/${{ matrix.service }}:$GIT_SHA
-            elif git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "docker-compose.yml"; then
-                echo "Changes detected in Docker Compose. Rebuilding all services..."
-                
-                docker-compose build
-                docker-compose push
-            else
-                echo "No relevant changes. Skipping build and push."
-            fi
+              # Створення змінної для поточного коміту
+              COMMIT_BEFORE=$(git rev-parse HEAD~1)  # Попередній коміт
+              COMMIT_CURRENT=$(git rev-parse HEAD)   # Поточний коміт
+          
+              # Перевірка на зміни в конкретному каталозі
+              CHANGED_FILES=$(git diff --name-only $COMMIT_BEFORE $COMMIT_CURRENT)
+              
+              if echo "$CHANGED_FILES" | grep -q "^${{ matrix.context }}/"; then
+                  echo "Changes detected in ${{ matrix.service }}. Building and pushing image..."
+                  cd ${{ matrix.context }}
+                  docker build -t $ECR_REGISTRY/${{ matrix.service }}:$GIT_SHA .
+                  docker push $ECR_REGISTRY/${{ matrix.service }}:$GIT_SHA
+              elif echo "$CHANGED_FILES" | grep -q "docker-compose.yml"; then
+                  echo "Changes detected in Docker Compose. Rebuilding all services..."
+                  docker-compose build
+                  docker-compose push
+              else
+                  echo "No relevant changes. Skipping build and push."
+              fi
 
   deploy:
     runs-on: ubuntu-latest
@@ -135,14 +139,14 @@ jobs:
             export GIT_SHA=${{ github.sha }}
 
             echo "Using GIT_SHA=$GIT_SHA"
+            
             # Завантаження останнього Docker Compose файлу та змінних середовища
             set -e
             cd /home/ubuntu/bookstore
             echo "Pulling the latest changes from Git..."
-            git fetch origin main
-            git config pull.rebase false  
-            git diff --exit-code origin/main || echo "Changes detected, pulling..."
-            git pull origin main
+            git fetch --force origin main
+            git reset --hard origin/main
+            git pull --ff-only origin main || echo "Pull failed, continuing..."
             
             if git diff --quiet HEAD~1 HEAD -- ${{ matrix.service }}/; then
             echo "No changes in ${{ matrix.service }}. Skipping deploy."
