@@ -153,6 +153,7 @@ jobs:
                   docker-compose up -d
               else
                   echo "Не знайдено іміджа для backend-rds з тегом ${GIT_SHA}. Пропускаю оновлення."
+                  continue
               fi
           fi
 
@@ -166,6 +167,7 @@ jobs:
                   docker-compose up -d
               else
                   echo "Не знайдено іміджа для backend-redis з тегом ${GIT_SHA}. Пропускаю оновлення."
+                  continue
               fi
           fi
 
@@ -179,6 +181,7 @@ jobs:
                   docker-compose up -d
               else
                   echo "Не знайдено іміджа для frontend з тегом ${GIT_SHA}. Пропускаю оновлення."
+                  continue
               fi
           fi
       
