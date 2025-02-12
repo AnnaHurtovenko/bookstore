@@ -145,14 +145,18 @@ jobs:
           echo "ECR_REGISTRY=$ECR_REGISTRY"
       
           if [[ "${BACKEND_RDS_CHANGED}" == "true" ]]; then
-            yq e '.services.backend_rds.image = strenv(ECR_REGISTRY)+"/backend-rds:"+strenv(GIT_SHA)' -i docker-compose.yml
+              sed -i 's|\(image:\s*\${ECR_REGISTRY}/backend-rds:\)[^"]*|\1${GIT_SHA}|' docker-compose.yml
           fi
+
           if [[ "${BACKEND_REDIS_CHANGED}" == "true" ]]; then
-            yq e '.services.backend_redis.image = strenv(ECR_REGISTRY)+"/backend-redis:"+strenv(GIT_SHA)' -i docker-compose.yml
+              sed -i 's|\(image:\s*\${ECR_REGISTRY}/backend-redis:\)[^"]*|\1${GIT_SHA}|' docker-compose.yml
           fi
+
           if [[ "${FRONTEND_CHANGED}" == "true" ]]; then
-            yq e '.services.frontend.image = strenv(ECR_REGISTRY)+"/frontend:"+strenv(GIT_SHA)' -i docker-compose.yml
+              sed -i 's|\(image:\s*\${ECR_REGISTRY}/frontend:\)[^"]*|\1${GIT_SHA}|' docker-compose.yml
           fi
+
+      
       
           echo "docker-compose.yml after update:"
           cat docker-compose.yml
