@@ -20,7 +20,7 @@ services:
     image: ${ECR_REGISTRY}/backend-rds:${GIT_SHA}
     container_name: backend-rds
     environment:
-      - DB_NAME=database-game
+      - DB_NAME=postgres
       - DB_USER=postgres
       - DB_PASSWORD=postgresdb
       - DB_HOST=database-game.cp8ukq08g3fe.eu-north-1.rds.amazonaws.com
@@ -38,7 +38,7 @@ services:
     image: ${ECR_REGISTRY}/backend-redis:${GIT_SHA}
     container_name: backend-redis 
     environment:
-      - REDIS_HOST=clustercfg.redis.kxloed.eun1.cache.amazonaws.com:6379
+      - REDIS_HOST=clustercfg.redis.kxloed.eun1.cache.amazonaws.com
       - REDIS_PORT=6379
       - REDIS_DB=0
       - CORS_ALLOWED_ORIGINS=http://backend-alb-432303704.eu-north-1.elb.amazonaws.com/
