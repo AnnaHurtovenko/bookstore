@@ -154,9 +154,7 @@ jobs:
 
           if [[ "${FRONTEND_CHANGED}" == "true" ]]; then
               sed -i 's|\(image:\s*\${ECR_REGISTRY}/frontend:\)[^"]*|\1${GIT_SHA}|' docker-compose.yml
-          fi
-
-      
+          fi      
       
           echo "docker-compose.yml after update:"
           cat docker-compose.yml
@@ -164,21 +162,51 @@ jobs:
           echo "Current running container images before restart:"
           docker ps --format "table {{.Names}}\t{{.Image}}"
       
+          # Перевірка для backend-rds
           if [[ "${BACKEND_RDS_CHANGED}" == "true" ]]; then
-            docker-compose pull backend-rds
-            docker-compose down
-            docker-compose up -d 
+              # Перевірка, чи є новий імідж для backend-rds
+              IMAGE_EXISTS=$(aws ecr describe-images --repository-name backend-rds --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text)
+
+              if [[ "$IMAGE_EXISTS" != "None" ]]; then
+                  echo "Знайдено новий імідж для backend-rds з тегом ${GIT_SHA}. Оновлення..."
+                  docker-compose pull backend-rds
+                  docker-compose down
+                  docker-compose up -d 
+              else
+                  echo "Не знайдено іміджа для backend-rds з тегом ${GIT_SHA}. Пропускаю оновлення."
+              fi
           fi
+
+          # Перевірка для backend-redis
           if [[ "${BACKEND_REDIS_CHANGED}" == "true" ]]; then
-            docker-compose pull backend-redis
-            docker-compose down
-            docker-compose up -d 
+              # Перевірка, чи є новий імідж для backend-redis
+              IMAGE_EXISTS=$(aws ecr describe-images --repository-name backend-redis --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text)
+
+              if [[ "$IMAGE_EXISTS" != "None" ]]; then
+                  echo "Знайдено новий імідж для backend-redis з тегом ${GIT_SHA}. Оновлення..."
+                  docker-compose pull backend-redis
+                  docker-compose down
+                  docker-compose up -d 
+              else
+                  echo "Не знайдено іміджа для backend-redis з тегом ${GIT_SHA}. Пропускаю оновлення."
+              fi
           fi
+
+          # Перевірка для frontend
           if [[ "${FRONTEND_CHANGED}" == "true" ]]; then
-            docker-compose pull frontend
-            docker-compose down
-            docker-compose up -d 
+              # Перевірка, чи є новий імідж для frontend
+              IMAGE_EXISTS=$(aws ecr describe-images --repository-name frontend --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text)
+
+              if [[ "$IMAGE_EXISTS" != "None" ]]; then
+                  echo "Знайдено новий імідж для frontend з тегом ${GIT_SHA}. Оновлення..."
+                  docker-compose pull frontend
+                  docker-compose down
+                  docker-compose up -d 
+              else
+                  echo "Не знайдено іміджа для frontend з тегом ${GIT_SHA}. Пропускаю оновлення."
+              fi
           fi
+
       
           echo "Current running container images after restart:"
           docker ps --format "table {{.Names}}\t{{.Image}}"
