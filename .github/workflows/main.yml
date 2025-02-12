@@ -165,12 +165,12 @@ jobs:
           docker ps --format "table {{.Names}}\t{{.Image}}"
       
           if [[ "${BACKEND_RDS_CHANGED}" == "true" ]]; then
-            docker-compose pull backend_rds
+            docker-compose pull backend-rds
             docker-compose down
             docker-compose up -d 
           fi
           if [[ "${BACKEND_REDIS_CHANGED}" == "true" ]]; then
-            docker-compose pull backend_redis
+            docker-compose pull backend-redis
             docker-compose down
             docker-compose up -d 
           fi
