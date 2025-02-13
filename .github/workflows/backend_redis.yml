@@ -77,6 +77,8 @@ jobs:
           cd /home/ubuntu/bookstore 
       
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+          sed -i "s|image: .*backend-redis:.*|image: $ECR_REGISTRY/backend-redis:$GIT_SHA|" docker-compose.yml
           
           echo "Checking updates for backend-redis..."
           IMAGE_EXISTS=$(aws ecr describe-images --repository-name backend-redis --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || echo "None")
