@@ -84,20 +84,20 @@ jobs:
           IMAGE_EXISTS=$(aws ecr describe-images --repository-name backend-redis --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || echo "None")
       
           if [[ "$IMAGE_EXISTS" != "None" ]]; then
-            echo "New image found for backend-rds. Updating..."
+            echo "New image found for backend-redis. Updating..."
 
-            CONTAINER_EXISTS=$(docker ps -q -f name=backend-rds)
+            CONTAINER_EXISTS=$(docker ps -q -f name=backend-redis)
             if [[ -n "$CONTAINER_EXISTS" ]]; then
                 echo "Container exists. Removing old container..."
-                docker-compose rm -f backend-rds
+                docker-compose rm -f backend-redis
             else
                 echo "Container does not exist. Skipping removal..."
             fi
 
             echo "Starting new container..."
-            docker-compose up -d backend-rds
+            docker-compose up -d backend-redis
           else
-            echo "No new image for backend-rds. Skipping update."
+            echo "No new image for backend-redis. Skipping update."
           fi
       
           echo "Current running container images after restart:"
