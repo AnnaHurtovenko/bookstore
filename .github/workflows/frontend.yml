@@ -83,8 +83,7 @@ jobs:
       
           if [[ "$IMAGE_EXISTS" != "None" ]]; then
               echo "New image found for frontend. Updating..."
-              docker-compose pull --no-cache frontend
-              docker-compose up -d --no-deps frontend
+              docker-compose up -d  frontend
           else
               echo "No new image for frontend. Skipping update."
           fi
