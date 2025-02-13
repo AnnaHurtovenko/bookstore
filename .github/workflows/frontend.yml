@@ -77,17 +77,19 @@ jobs:
           cd /home/ubuntu/bookstore 
       
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-          
+
           echo "Checking updates for frontend..."
-          IMAGE_EXISTS=$(aws ecr describe-images --repository-name frontend --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || echo "None")
-      
-          if [[ "$IMAGE_EXISTS" != "None" ]]; then
-              echo "New image found for frontend. Updating..."
-              docker-compose up -d  frontend
+
+            # Перевіряємо, чи існує образ у репозиторії
+          if aws ecr describe-images --repository-name frontend --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text 2>/dev/null | grep -qv "None"; then
+            echo "New image found for frontend. Updating..."
+            docker-compose up -d frontend
           else
-              echo "No new image for frontend. Skipping update."
+            echo "No new image for frontend. Skipping update."
           fi
-      
-          echo "Current running container images after restart:"
-          docker ps --format "table {{.Names}}\t{{.Image}}"
+
+            # Перевіряємо запущені контейнери після оновлення
+            echo "Current running container images after restart:"
+            docker ps --format "table {{.Names}}\t{{.Image}}"
+
           EOF
