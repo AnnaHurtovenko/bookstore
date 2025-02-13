@@ -79,18 +79,28 @@ jobs:
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
           echo "Updating frontend image in docker-compose.yml..."
-          sed -i "s|image: .*frontend:.*|image: $ECR_REGISTRY/frontend:$GIT_SHA|" docker-compose.yml
+          yq e '.services.frontend.image = strenv(ECR_REGISTRY) + "/frontend:" + strenv(GIT_SHA)' -i docker-compose.yml
 
           echo "Checking updates for frontend..."
+          IMAGE_EXISTS=$(aws ecr describe-images --repository-name frontend --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || echo "None")
 
-            # Перевіряємо, чи існує образ у репозиторії
-          if aws ecr describe-images --repository-name frontend --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text 2>/dev/null | grep -qv "None"; then
+          if [[ "$IMAGE_EXISTS" != "None" ]]; then
             echo "New image found for frontend. Updating..."
 
+            CONTAINER_EXISTS=$(docker ps -q -f name=frontend)
+            if [[ -n "$CONTAINER_EXISTS" ]]; then
+                echo "Container exists. Removing old container..."
+                docker-compose rm -f frontend
+            else
+                echo "Container does not exist. Skipping removal..."
+            fi
+
+            echo "Starting new container..."
             docker-compose up -d --no-deps frontend
           else
             echo "No new image for frontend. Skipping update."
           fi
+
 
             # Перевіряємо запущені контейнери після оновлення
             echo "Current running container images after restart:"

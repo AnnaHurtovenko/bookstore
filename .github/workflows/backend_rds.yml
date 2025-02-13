@@ -81,7 +81,7 @@ jobs:
       
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
-          sed -i "s|image: .*backend-rds:.*|image: $ECR_REGISTRY/backend-rds:$GIT_SHA|" docker-compose.yml
+          yq e '.services.backend_rds.image = strenv(ECR_REGISTRY) + "/backend-rds:" + strenv(GIT_SHA)' -i docker-compose.yml
           
           echo "Checking updates for backend-rds..."
           IMAGE_EXISTS=$(aws ecr describe-images --repository-name backend-rds --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || echo "None")
