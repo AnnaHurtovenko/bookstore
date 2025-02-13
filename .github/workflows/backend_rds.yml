@@ -86,9 +86,7 @@ jobs:
       
           if [[ "$IMAGE_EXISTS" != "None" ]]; then
               echo "New image found for backend-rds. Updating..."
-              docker-compose pull backend-rds
               docker-compose up -d --no-deps --build backend-rds
-              docker-compose exec backend-rds bash -c 'exit'
           else
               echo "No new image for backend-rds. Skipping update."
           fi
