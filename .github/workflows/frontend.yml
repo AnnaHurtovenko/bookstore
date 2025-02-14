@@ -97,7 +97,7 @@ jobs:
             docker rm frontend
 
             echo "Starting new container..."
-            docker-compose up -d frontend
+            docker-compose up -d --no-deps frontend
           else
             echo "No new image for frontend. Skipping update."
           fi
