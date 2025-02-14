@@ -78,8 +78,11 @@ jobs:
       
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
-          echo "Updating frontend image in docker-compose.yml..."
-          yq e '.services.frontend.image = strenv(ECR_REGISTRY) + "/frontend:" + strenv(GIT_SHA)' -i docker-compose.yml
+          echo "GIT_SHA is: $GIT_SHA"
+
+          echo "Updating docker-compose.yml with new images..."
+          envsubst < docker-compose.yml > docker-compose.tmp
+          mv docker-compose.tmp docker-compose.yml
 
           echo "Checking updates for frontend..."
           IMAGE_EXISTS=$(aws ecr describe-images --repository-name frontend --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || echo "None")
@@ -94,7 +97,7 @@ jobs:
             docker rm frontend
 
             echo "Starting new container..."
-            docker-compose up -d --no-deps frontend
+            docker-compose up -d frontend
           else
             echo "No new image for frontend. Skipping update."
           fi
