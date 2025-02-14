@@ -78,28 +78,29 @@ jobs:
       
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
-          yq e '.services.backend_redis.image = strenv(ECR_REGISTRY) + "/backend-redis:" + strenv(GIT_SHA)' -i docker-compose.yml
-          
+          echo "Updating backend-redis image in docker-compose.yml..."
+          yq e '.services.backend-redis.image = strenv(ECR_REGISTRY) + "/backend-redis:" + strenv(GIT_SHA)' -i docker-compose.yml
+
           echo "Checking updates for backend-redis..."
           IMAGE_EXISTS=$(aws ecr describe-images --repository-name backend-redis --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || echo "None")
-      
+
           if [[ "$IMAGE_EXISTS" != "None" ]]; then
             echo "New image found for backend-redis. Updating..."
 
-            CONTAINER_EXISTS=$(docker ps -q -f name=backend-redis)
-            if [[ -n "$CONTAINER_EXISTS" ]]; then
-                echo "Container exists. Removing old container..."
-                docker-compose rm -f backend-redis
-            else
-                echo "Container does not exist. Skipping removal..."
-            fi
+            echo "Stopping old container..."
+            docker stop backend-redis
+
+            echo "Removing old container..."
+            docker rm backend-redis
 
             echo "Starting new container..."
-            docker-compose up -d backend-redis
+            docker-compose up -d --no-deps backend-redis
           else
             echo "No new image for backend-redis. Skipping update."
           fi
-      
-          echo "Current running container images after restart:"
-          docker ps --format "table {{.Names}}\t{{.Image}}"
+
+            # Перевіряємо запущені контейнери після оновлення
+            echo "Current running container images after restart:"
+            docker ps --format "table {{.Names}}\t{{.Image}}"
+
           EOF

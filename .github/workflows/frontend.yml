@@ -87,20 +87,17 @@ jobs:
           if [[ "$IMAGE_EXISTS" != "None" ]]; then
             echo "New image found for frontend. Updating..."
 
-            CONTAINER_EXISTS=$(docker ps -q -f name=frontend)
-            if [[ -n "$CONTAINER_EXISTS" ]]; then
-                echo "Container exists. Removing old container..."
-                docker-compose rm -f frontend
-            else
-                echo "Container does not exist. Skipping removal..."
-            fi
+            echo "Stopping old container..."
+            docker stop frontend
+
+            echo "Removing old container..."
+            docker rm frontend
 
             echo "Starting new container..."
             docker-compose up -d --no-deps frontend
           else
             echo "No new image for frontend. Skipping update."
           fi
-
 
             # Перевіряємо запущені контейнери після оновлення
             echo "Current running container images after restart:"
