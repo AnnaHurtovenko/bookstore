@@ -143,6 +143,11 @@ In the second step, enhance scalability and availability:
 
 
 - Add an **Application Load Balancer (ALB)** in the **public subnet** to distribute traffic.
+- Create a listener for port 80 (HTTP) or 443 (HTTPS).
+- Assign a Security Group that allows inbound traffic on listener ports.
+- Create a Target Group
+- Go to the listener's "Rules" tab.
+- Create rules with conditions (URL path, etc.) to direct traffic.
 
 
 ### Step 3: Incorporating Databases and Caching
@@ -152,6 +157,32 @@ In the second step, enhance scalability and availability:
 In the final step, integrate data storage and caching:
 
 - Deploy **RDS** and **ElastiCache (Redis)** in a **private subnet** for secure database and caching operations.
+  **RDS Deployment:**
+
+*   Create an RDS instance (choose your database engine).
+*   Select a private subnet for the RDS instance.
+*   Configure security groups to allow access only from your backend instances.
+
+**ElastiCache (Redis) Deployment:**
+
+*   Create an ElastiCache cluster (choose Redis engine).
+*   Select a private subnet for the ElastiCache cluster.
+*   Configure security groups to allow access only from your backend instances.
+*   In your Redis configuration, for "Encryption in transit," select "Preferred."
+
+
+**Backend Instance Configuration:**
+
+*   Ensure your backend instances are also in a private subnet (or have access to the private subnet via VPC peering/gateway).
+*   Configure your backend application to connect to the RDS and ElastiCache endpoints (use the private IP addresses or DNS names).
+
+## Verification Commands on EC2
+
+Here are some commands you can use on your EC2 backend instances to verify the setup:
+
+**Connectivity:**
+*   `psql -h database-game.cp8ukq08g3fe.eu-north-1.rds.amazonaws.com -U postgres -d postgres`: Connect to RDS using `psql`.
+*   `redis-cli -h clustercfg.redis.kxloed.eun1.cache.amazonaws.com --tls -p 6379`: Connect to ElastiCache using `redis-cli` (with TLS).
 
 ## CI/CD Process
 
