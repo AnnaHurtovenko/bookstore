@@ -81,8 +81,7 @@ jobs:
           echo "GIT_SHA is: $GIT_SHA"
 
           echo "Updating docker-compose.yml with new images..."
-          envsubst < docker-compose.yml > docker-compose.tmp
-          mv docker-compose.tmp docker-compose.yml
+          sed -i "s#image: .*/frontend:.*#image: ${ECR_REGISTRY}/frontend:${GIT_SHA}#g" docker-compose.yml
 
           echo "Checking updates for frontend..."
           IMAGE_EXISTS=$(aws ecr describe-images --repository-name frontend --image-ids imageTag=${GIT_SHA} --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || echo "None")
